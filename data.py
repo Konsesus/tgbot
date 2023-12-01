@@ -15,7 +15,7 @@ sql = (
 id_chat = '-1002140431754'
 
 # Запрос SQL для записи данных в БД
-query_add = '''
+query_add_user = '''
 Insert Users(
 FullName, 
 SocialNetworkLink,
@@ -25,6 +25,14 @@ UserId,
 Username
 )
 Values (?,?,?,?,?,?)
+'''
+
+query_add_worker = '''
+insert Users(
+FullName,
+SocialNetworkLink
+)
+Values(?,?)
 '''
 
 query_get_access = '''
@@ -40,6 +48,13 @@ select
 SocialNetworkLink
 from Users
 where User_group_id = 2
+'''
+
+query_get_all_users = '''
+select * 
+from Users
+where 
+User_group_id = 0
 '''
 
 global admins

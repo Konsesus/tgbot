@@ -6,6 +6,8 @@ import re
 
 user_data = {}
 
+worker_data = {}
+
 admins_data = {}
 
 bot = data.bot_token
@@ -126,14 +128,52 @@ def main(commands=['start']):
             user_id = user_data[chat_id]["user_id"]
             user_name = user_data[chat_id]["user_name"]
             current_date = date.today()
-            full_data = f"ФИО: {full_name}\nСсылка на соц.сеть: {social_networks}\nГород: {city}\nДата регистрации по ссылке: {current_date} "
+            full_data = f"ФИО: {full_name}\nСсылка на соц.сеть: {social_networks}\nГород: {city}\nДата регистрации по ссылке: {current_date}\nСтатус: Пользователь"
             markup = types.InlineKeyboardMarkup()
             markup.add(types.InlineKeyboardButton('Главное меню', callback_data='start_menu'))
-            bot.send_message(data.chat_id, full_data)
+            bot.send_message(data.id_chat, full_data)
             bot.send_message(chat_id, "Ответ записан.", reply_markup=markup)
-            cursor.execute(data.query_add, (full_name, social_networks, city, phone_number, user_id, user_name ))
+            cursor.execute(data.query_add_user, (full_name, social_networks, city, phone_number, user_id, user_name ))
             cursor.commit()
             return
+    
+    def reg_worker(message):
+        chat_id = message.chat.id
+        full_name = message.text
+            # Проверяем, соответствует ли ФИО формату
+        if not check_full_name(full_name):
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton('Главное меню', callback_data='start_menu'))
+            bot.send_message(chat_id, "Неверный формат ФИО. Пожалуйста, введите ФИО в формате 'Иванов Иван Иванович' или без отчества:", reply_markup=markup)
+            bot.register_next_step_handler(message, save_full_name)
+        worker_data[chat_id] = {"full_name": full_name}
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton('Главное меню', callback_data='start_menu'))
+        bot.send_message(chat_id, "Отлично! Теперь введите ссылку на соц.сеть:", reply_markup=markup)
+        bot.register_next_step_handler(message, work_network)
+    
+    def work_network(message):
+        chat_id = message.chat.id
+        social_networks = message.text
+        worker_data[chat_id]["social_networks"] = social_networks
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton('Главное меню', callback_data='start_menu'))
+        yes = types.InlineKeyboardButton('Да', callback_data='send_worker')
+        no = types.InlineKeyboardButton('Нет', callback_data='not_send_worker')
+        markup.row(yes, no)
+        bot.send_message(chat_id, "Зарегистрировать воркера?", reply_markup=markup)
+
+    def send_worker_data(chat_id):
+        fullname = worker_data[chat_id]["fullname"]
+        social_networks = worker_data[chat_id]["social_networks"]
+        current_date = date.today()
+        full_data = f"ФИО: {fullname}\nСсылка на соц.сеть: {social_networks}\nДата регистрации по ссылке: {current_date}\nСтатус: Воркер"
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton('Главное меню', callback_data='start_menu'))
+        bot.send_message(data.id_chat, full_data)
+        bot.send_message(chat_id, "Воркер зарегистрирован.", reply_markup=markup)
+        cursor.execute(data.query_add_worker, (fullname, social_networks))
+        cursor.commit()
 
 
     @bot.callback_query_handler(func=lambda callback: True)
@@ -157,7 +197,8 @@ def main(commands=['start']):
             markup.add(types.InlineKeyboardButton('Главное меню', callback_data='start_menu'))
             access = get_access(callback.message.chat.id)
             if access[0] == '2':
-                    bot.send_message(chat_id, "Функция в разработке" , reply_markup=markup)
+                    bot.send_message(chat_id, "Пожалуйста, введите ФИО" , reply_markup=markup)
+                    bot.register_next_step_handler(callback.message, reg_worker)
             elif access[0] == '1':
                     bot.send_message(chat_id, "Обратитесь к администраторам для регистрации нового воркера:", reply_markup=markup)
                     get_admins()
@@ -184,6 +225,18 @@ def main(commands=['start']):
             send_data(chat_id)
 
         # Если пользователь отказался от отправки данных на проверку
+        elif callback.data == "not_send_data":
+            chat_id = callback.message.chat.id
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton('Главное меню', callback_data='start_menu'))
+            bot.send_message(chat_id, "Данные не будут отправлены.", reply_markup=markup)
+        
+        # Если администратор подтвердил регистрацию
+        elif callback.data == "send_worker":
+            chat_id = callback.message.chat.id
+            send_worker_data(chat_id)
+
+        # Если администратор отменил регистрацию
         elif callback.data == "not_send_data":
             chat_id = callback.message.chat.id
             markup = types.InlineKeyboardMarkup()
