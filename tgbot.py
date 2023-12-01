@@ -14,7 +14,6 @@ conn_str = data.sql
 conn = pyodbc.connect(conn_str)
 cursor = conn.cursor()
 
-
 def get_access(user_id):
     cursor.execute('Select User_group_id from Users where UserId = ?', (user_id))
     result = cursor.fetchone()
