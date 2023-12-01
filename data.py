@@ -1,7 +1,7 @@
 import telebot
 
 # API для бота
-bot_token = telebot.TeleBot('6739427531:AAFE7FE17wkh8OrWMIhDhJWzVz1GxFOx7Qg')
+bot_token = telebot.TeleBot('')
 
 
 # Данные для подключения к локальной БД
@@ -12,7 +12,7 @@ sql = (
     r'Trusted_Connection=yes;'
 )
 # Куда будут отправляться данные после регистрации пользователя
-id_chat = '-1002140431754'
+id_chat = ''
 
 # Запрос SQL для записи данных в БД
 query_add_user = '''
